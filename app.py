@@ -15,8 +15,13 @@ def get_tasks():
 @app.route("/tasks", methods=["POST"])
 def create_task():
     data = request.get_json()
-    task = store.create(data["title"], data.get("priority", "medium"))
-    return jsonify(task), 200  # bug: should be 201 Created
+    if not data or "title" not in data:
+        return jsonify({"error": "Missing required field: title"}), 400
+    try:
+        task = store.create(data["title"], data.get("priority", "medium"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(task), 201
 
 
 @app.route("/tasks/<int:task_id>", methods=["GET"])
@@ -30,7 +35,12 @@ def get_task(task_id):
 @app.route("/tasks/<int:task_id>", methods=["PUT"])
 def update_task(task_id):
     data = request.get_json()
-    task = store.update(task_id, data)
+    if data is None:
+        return jsonify({"error": "Request body must be JSON"}), 400
+    try:
+        task = store.update(task_id, data)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     if task is None:
         return jsonify({"error": "Task not found"}), 404
     return jsonify(task)
@@ -45,4 +55,4 @@ def delete_task(task_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

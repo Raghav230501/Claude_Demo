@@ -19,7 +19,10 @@ class TaskStore:
         return self._tasks.get(task_id)
 
     def create(self, title, priority="medium"):
-        # bug: no validation — empty title or invalid priority goes straight through
+        if not title or not isinstance(title, str):
+            raise ValueError("title must be a non-empty string")
+        if priority not in VALID_PRIORITIES:
+            raise ValueError(f"priority must be one of {VALID_PRIORITIES}")
         task = {
             "id": self._next_id,
             "title": title,
@@ -39,8 +42,12 @@ class TaskStore:
         if "title" in data:
             task["title"] = data["title"]
         if "priority" in data:
+            if data["priority"] not in VALID_PRIORITIES:
+                raise ValueError(f"priority must be one of {VALID_PRIORITIES}")
             task["priority"] = data["priority"]
         if "status" in data:
+            if data["status"] not in VALID_STATUSES:
+                raise ValueError(f"status must be one of {VALID_STATUSES}")
             task["status"] = data["status"]
 
         task["updated_at"] = datetime.utcnow().isoformat()
@@ -54,7 +61,6 @@ class TaskStore:
 
     def stats(self):
         tasks = list(self._tasks.values())
-        # bug: crashes with ZeroDivisionError when there are no tasks
         done = sum(1 for t in tasks if t["status"] == "done")
-        completion_rate = done / len(tasks) * 100
+        completion_rate = (done / len(tasks) * 100) if tasks else 0.0
         return {"total": len(tasks), "done": done, "completion_rate": completion_rate}
